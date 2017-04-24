@@ -2,3 +2,4 @@
 .stack-work/
 dist/
 haskell-sudoku.iml
+cabal.config
