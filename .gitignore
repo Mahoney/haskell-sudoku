@@ -3,3 +3,4 @@
 dist/
 haskell-sudoku.iml
 cabal.config
+.ideaHaskellLib/
