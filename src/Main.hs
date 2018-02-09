@@ -1,15 +1,16 @@
-module Main where
+module Main (main, applicationBuilder) where
 
 import System.Environment
 import Interfaces
 import Validation
 import BusinessLogic
+import Ext.Data.Either
 
 applicationBuilder :: Validator -> Solver -> ResultFormatter -> [String] -> String
 applicationBuilder validator solver formatter args =
   let validationResult = validator args
       result = fmap solver validationResult
-  in either id formatter result
+  in rightMerge formatter result
 
 main :: IO ()
 main = do
