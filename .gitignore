@@ -1,6 +1,7 @@
 .idea/
 .stack-work/
-dist/
+/dist/
 haskell-sudoku.iml
 cabal.config
 .ideaHaskellLib/
+/out/

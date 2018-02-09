@@ -1,37 +1,19 @@
-module Main where
+module Main (main, applicationBuilder) where
 
 import System.Environment
+import Interfaces
+import Validation
+import BusinessLogic
+import Ext.Data.Either
+
+applicationBuilder :: Validator -> Solver -> ResultFormatter -> [String] -> String
+applicationBuilder validator solver formatter args =
+  let validationResult = validator args
+      result = fmap solver validationResult
+  in rightMerge formatter result
 
 main :: IO ()
 main = do
   args <- getArgs
-  print $ head args
-  putStrLn (parseSolveAndShowSudoku (head args))
-
-parseSolveAndShowSudoku :: String -> String
-parseSolveAndShowSudoku = undefined
-
-type Results = [Result]
-
-data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
-           deriving (Eq, Ord, Show, Read, Bounded, Enum)
-
-data Column = A | B | C | D | E | F | G | H | I
-           deriving (Eq, Ord, Show, Read, Bounded, Enum)
-
-type CandidateValues = [Int]
-
-data CellCoordinates = CellCoordinates {
-                         column :: Column,
-                         row :: Row
-                       }
-           deriving (Eq, Ord, Show, Read, Bounded)
-
-data Cell = Cell {
-              coordinates :: CellCoordinates,
-              value :: CandidateValues
-            }
-           deriving (Eq, Ord, Show, Read)
-
-type Grid = [Cell]
-newtype Result = Result Grid deriving (Eq, Ord, Show, Read)
+  let app = applicationBuilder validate solve show
+  putStrLn (app args)
