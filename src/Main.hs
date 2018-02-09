@@ -1,31 +1,18 @@
 module Main where
 
 import System.Environment
+import Interfaces
+import Validation
+import BusinessLogic
 
-type ValidationError = String
-newtype Sudoku = Sudoku String deriving Show
-type Validator = [String] -> Either ValidationError Sudoku
-type Solver = Sudoku -> [Sudoku]
-
-validate :: Validator
-validate [args] = Right (Sudoku args)
-validate _ = Left "Takes one argument of type sudoku"
-
-solve :: Solver
-solve sudoku = [sudoku]
-
-buildApp :: Validator -> Solver -> [String] -> Either ValidationError [Sudoku]
-buildApp validator solver args = fmap solver (validator args)
-
-businessLogic :: [String] -> Either ValidationError [Sudoku]
-businessLogic = buildApp validate solve
+applicationBuilder :: Validator -> Solver -> ResultFormatter -> [String] -> String
+applicationBuilder validator solver formatter args =
+  let validationResult = validator args
+      result = fmap solver validationResult
+  in either id formatter result
 
 main :: IO ()
 main = do
   args <- getArgs
-  let result = businessLogic args
-  let output =
-        case result of
-          Left validationError -> validationError
-          Right sudoku -> "Results are in: " ++ show sudoku
-  print output
+  let app = applicationBuilder validate solve show
+  putStrLn (app args)
