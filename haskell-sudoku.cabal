@@ -11,6 +11,11 @@ library
       base == 4.9.1.0
   exposed-modules:
       Main
+  other-modules:
+    BusinessLogic
+    Ext.Data.Either
+    Interfaces
+    Validation
   default-language: Haskell2010
 
 executable haskell-sudoku
@@ -18,6 +23,11 @@ executable haskell-sudoku
   hs-source-dirs:  src
   build-depends:   base
   default-language: Haskell2010
+  other-modules:
+    BusinessLogic
+    Ext.Data.Either
+    Interfaces
+    Validation
 
 test-suite test-haskell-sudoku
   type: exitcode-stdio-1.0
