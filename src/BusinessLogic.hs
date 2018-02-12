@@ -1,8 +1,19 @@
 module BusinessLogic where
 
 import Interfaces
+import Ext.Data.Either
 
-solve :: Solver
+inMemoryTransaction ::
+  (unvalidatedInput -> Either output input) ->
+  (input -> result) ->
+  (result -> output) ->
+  unvalidatedInput -> output
+inMemoryTransaction validator businessLogic formatter unvalidatedInput =
+  let validationResult = validator unvalidatedInput
+      result = fmap businessLogic validationResult
+  in rightMerge formatter result
+
+solve :: Sudoku -> [Sudoku]
 solve sudoku = [sudoku]
 
 data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
