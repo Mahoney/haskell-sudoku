@@ -11,11 +11,12 @@ library
       base == 4.9.1.0
   exposed-modules:
       Main
+      Sudoku.Cli
   other-modules:
-    BusinessLogic
-    Ext.Data.Either
-    Interfaces
-    Validation
+      Sudoku.BusinessLogic
+      Sudoku.Interfaces
+      Sudoku.Validation
+      Ext.Data.Either
   default-language: Haskell2010
 
 executable haskell-sudoku
@@ -24,10 +25,11 @@ executable haskell-sudoku
   build-depends:   base
   default-language: Haskell2010
   other-modules:
-    BusinessLogic
-    Ext.Data.Either
-    Interfaces
-    Validation
+      Sudoku.Cli
+      Sudoku.BusinessLogic
+      Sudoku.Interfaces
+      Sudoku.Validation
+      Ext.Data.Either
 
 test-suite test-haskell-sudoku
   type: exitcode-stdio-1.0

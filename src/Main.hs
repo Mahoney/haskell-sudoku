@@ -1,11 +1,7 @@
-module Main (main, app) where
+module Main where
 
 import System.Environment
-import Validation
-import BusinessLogic
-
-app :: [String] -> String
-app = inMemoryTransaction validate solve show
+import Sudoku.Cli
 
 main :: IO ()
 main = do

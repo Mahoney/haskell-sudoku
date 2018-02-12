@@ -1,6 +1,6 @@
-module BusinessLogic where
+module Sudoku.BusinessLogic where
 
-import Interfaces
+import Sudoku.Interfaces
 import Ext.Data.Either
 
 inMemoryTransaction ::

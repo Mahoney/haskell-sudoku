@@ -1,6 +1,6 @@
-module Validation where
+module Sudoku.Validation where
 
-import Interfaces
+import Sudoku.Interfaces
 
 type ValidationError = String
 type Validator = [String] -> Either ValidationError Sudoku
