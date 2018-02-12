@@ -22,7 +22,7 @@ library
 executable haskell-sudoku
   main-is:         Main.hs
   hs-source-dirs:  src
-  build-depends:   base
+  build-depends:   base == 4.9.1.0
   default-language: Haskell2010
   other-modules:
       Sudoku.Cli
@@ -39,7 +39,7 @@ test-suite test-haskell-sudoku
   ghc-options: -Wall
   build-depends:
       base == 4.9.1.0
-    , haskell-sudoku == 1.0
+    , haskell-sudoku
     , hspec == 2.4.3
     , QuickCheck == 2.9.2
   default-language: Haskell2010
