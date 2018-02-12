@@ -10,7 +10,8 @@ RUN mkdir src test && \
 
 COPY src ./src
 COPY test ./test
-RUN stack install
+RUN stack build --test && \
+    stack install
 
 FROM fpco/haskell-scratch:integer-gmp
 COPY --from=build /root/.local/bin/haskell-sudoku /
