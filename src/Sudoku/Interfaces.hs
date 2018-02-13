@@ -1,3 +1,3 @@
 module Sudoku.Interfaces where
 
-newtype Sudoku = Sudoku String deriving Show
+newtype Sudoku = Sudoku String deriving (Show, Eq)
