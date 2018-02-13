@@ -4,4 +4,4 @@ import Sudoku.Validation
 import Sudoku.BusinessLogic
 
 app :: [String] -> String
-app = inMemoryTransaction validate solve show
+app = inMemoryTransaction validate id solve show

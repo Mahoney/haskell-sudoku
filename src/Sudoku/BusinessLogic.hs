@@ -1,17 +1,17 @@
 module Sudoku.BusinessLogic where
 
 import Sudoku.Interfaces
-import Ext.Data.Either
 
 inMemoryTransaction ::
-  (unvalidatedInput -> Either output input) ->
+  (unvalidatedInput -> Either validationFailure input) ->
+  (validationFailure -> output) ->
   (input -> result) ->
   (result -> output) ->
   unvalidatedInput -> output
-inMemoryTransaction validator businessLogic formatter unvalidatedInput =
+inMemoryTransaction validator validationFailedFormatter businessLogic resultFormatter unvalidatedInput =
   let validationResult = validator unvalidatedInput
-      result           = fmap (formatter . businessLogic) validationResult
-  in merge result
+      result           = fmap businessLogic validationResult
+  in either validationFailedFormatter resultFormatter result
 
 solve :: Sudoku -> [Sudoku]
 solve sudoku = [sudoku]
