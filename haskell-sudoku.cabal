@@ -10,9 +10,7 @@ library
   build-depends:
       base == 4.9.1.0
   exposed-modules:
-      Main
       Sudoku.Cli
-  other-modules:
       Sudoku.BusinessLogic
       Sudoku.Interfaces
       Sudoku.Validation

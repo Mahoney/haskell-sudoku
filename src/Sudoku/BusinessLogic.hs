@@ -10,8 +10,8 @@ inMemoryTransaction ::
   unvalidatedInput -> output
 inMemoryTransaction validator businessLogic formatter unvalidatedInput =
   let validationResult = validator unvalidatedInput
-      result = fmap businessLogic validationResult
-  in rightMerge formatter result
+      result           = fmap (formatter . businessLogic) validationResult
+  in merge result
 
 solve :: Sudoku -> [Sudoku]
 solve sudoku = [sudoku]
