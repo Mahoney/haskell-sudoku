@@ -15,6 +15,7 @@ library
       Sudoku.Interfaces
       Sudoku.SimpleCli.Cli
       Sudoku.SimpleCli.Validation
+      Sudoku.SimpleCli.ResultFormatting
       Ext.Data.Either
   default-language: Haskell2010
 
@@ -30,6 +31,7 @@ executable haskell-sudoku
       Sudoku.Interfaces
       Sudoku.SimpleCli.Cli
       Sudoku.SimpleCli.Validation
+      Sudoku.SimpleCli.ResultFormatting
       Ext.Data.Either
 
 test-suite test-haskell-sudoku
