@@ -1,7 +1,7 @@
-module Sudoku.CliSpec where
+module Sudoku.SimpleCli.CliSpec where
 
 import Test.Hspec
-import Sudoku.Cli (app)
+import Sudoku.SimpleCli.Cli (app)
 
 spec :: Spec
 spec = xit "solves a hard sudoku" $

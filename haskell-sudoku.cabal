@@ -10,10 +10,10 @@ library
   build-depends:
       base == 4.9.1.0
   exposed-modules:
-      Sudoku.Cli
       Sudoku.BusinessLogic
       Sudoku.Interfaces
-      Sudoku.Validation
+      Sudoku.SimpleCli.Cli
+      Sudoku.SimpleCli.Validation
       Ext.Data.Either
   default-language: Haskell2010
 
@@ -23,10 +23,10 @@ executable haskell-sudoku
   build-depends:   base == 4.9.1.0
   default-language: Haskell2010
   other-modules:
-      Sudoku.Cli
       Sudoku.BusinessLogic
       Sudoku.Interfaces
-      Sudoku.Validation
+      Sudoku.SimpleCli.Cli
+      Sudoku.SimpleCli.Validation
       Ext.Data.Either
 
 test-suite test-haskell-sudoku
@@ -43,4 +43,4 @@ test-suite test-haskell-sudoku
   default-language: Haskell2010
   other-modules:
       Sudoku.BusinessLogicSpec
-      Sudoku.CliSpec
+      Sudoku.SimpleCli.CliSpec

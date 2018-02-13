@@ -1,4 +1,4 @@
-module Sudoku.Validation where
+module Sudoku.SimpleCli.Validation where
 
 import Sudoku.Interfaces
 

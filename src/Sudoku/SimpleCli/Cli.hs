@@ -1,6 +1,6 @@
-module Sudoku.Cli where
+module Sudoku.SimpleCli.Cli where
 
-import Sudoku.Validation
+import Sudoku.SimpleCli.Validation
 import Sudoku.BusinessLogic
 
 app :: [String] -> String
