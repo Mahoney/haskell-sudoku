@@ -44,3 +44,5 @@ test-suite test-haskell-sudoku
   other-modules:
       Sudoku.BusinessLogicSpec
       Sudoku.SimpleCli.CliSpec
+      Sudoku.SimpleCli.ValidationSpec
+      Ext.Data.EitherSpec
