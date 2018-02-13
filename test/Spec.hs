@@ -1,24 +1,12 @@
 import Test.Hspec
-import Sudoku.Cli (app)
+
+import qualified Sudoku.CliSpec
+import qualified Sudoku.BusinessLogicSpec
 
 main :: IO ()
-main = hspec $
-  describe "Main app" $
-    it "solves a hard sudoku" $
-      app ["......3.."++
-           "6...2.1.."++
-           ".328.7..."++
-           "....4..6."++
-           "4.69.85.7"++
-           ".9..7...."++
-           "...1.582."++
-           "..4.8...1"++
-           "..5......"] `shouldBe` "148659372"++
-                                   "657324198"++
-                                   "932817645"++
-                                   "783541269"++
-                                   "426938517"++
-                                   "591276483"++
-                                   "379165824"++
-                                   "264783951"++
-                                   "815492736"
+main = hspec spec
+
+spec :: Spec
+spec = do
+  describe "Cli"           Sudoku.CliSpec.spec
+  describe "BusinessLogic" Sudoku.BusinessLogicSpec.spec
