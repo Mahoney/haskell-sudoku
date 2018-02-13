@@ -31,4 +31,4 @@ toCellContents char
 
 toSudoku :: [CandidateValues] -> Sudoku
 toSudoku candidates =
-  fmap (uncurry Cell) (zip allCoordinates candidates)
+  Sudoku (fmap (uncurry Cell) (zip allCoordinates candidates))

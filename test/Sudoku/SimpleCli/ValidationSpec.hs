@@ -41,7 +41,7 @@ spec = describe "validate" $ do
                      "...1.582."++
                      "..4.8...1"++
                      "..5......"]
-             `shouldBe` Right [
+             `shouldBe` Right (Sudoku [
                empty A R1  , empty B R1  , empty C R1  , empty D R1  , empty E R1  , empty F R1  , inked G R1 3, empty H R1  , empty I R1  ,
                inked A R2 6, empty B R2  , empty C R2  , empty D R2  , inked E R2 2, empty F R2  , inked G R2 1, empty H R2  , empty I R2  ,
                empty A R3  , inked B R3 3, inked C R3 2, inked D R3 8, empty E R3  , inked F R3 7, empty G R3  , empty H R3  , empty I R3  ,
@@ -51,4 +51,4 @@ spec = describe "validate" $ do
                empty A R7  , empty B R7  , empty C R7  , inked D R7 1, empty E R7  , inked F R7 5, inked G R7 8, inked H R7 2, empty I R7  ,
                empty A R8  , empty B R8  , inked C R8 4, empty D R8  , inked E R8 8, empty F R8  , empty G R8  , empty H R8  , inked I R8 1,
                empty A R9  , empty B R9  , inked C R9 5, empty D R9  , empty E R9  , empty F R9  , empty G R9  , empty H R9  , empty I R9
-             ]
+             ])
