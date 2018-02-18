@@ -1,7 +1,7 @@
 module Sudoku.Interfaces where
 
-import Data.List
-import Data.List.Split
+import Data.List (intercalate)
+import Data.List.Split (chunksOf)
 
 data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
            deriving (Eq, Ord, Show, Read, Bounded, Enum)

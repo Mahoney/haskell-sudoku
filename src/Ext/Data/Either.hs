@@ -1,6 +1,6 @@
 module Ext.Data.Either where
 
-import Data.Either
+import Data.Either (either, partitionEithers)
 
 rightMerge :: (b -> a) -> Either a b -> a
 rightMerge = either id

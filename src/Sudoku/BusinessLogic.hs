@@ -1,6 +1,6 @@
 module Sudoku.BusinessLogic where
 
-import Sudoku.Interfaces
+import Sudoku.Interfaces (Sudoku)
 
 inMemoryTransaction ::
   (unvalidatedInput -> Either validationFailure input) ->

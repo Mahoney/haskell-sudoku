@@ -1,9 +1,9 @@
 module Sudoku.SimpleCli.Validation (validate) where
 
-import Sudoku.Interfaces
-import Data.Char
-import Data.List
-import Ext.Data.Either
+import Sudoku.Interfaces (Sudoku(..), CandidateValues, Cell(..), allCandidates, allCoordinates)
+import Data.Char (digitToInt)
+import Data.List (intercalate)
+import Ext.Data.Either (leftMap, leftPartition)
 
 type ValidationError = String
 type Validator = [String] -> Either ValidationError Sudoku

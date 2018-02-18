@@ -1,6 +1,6 @@
 module Sudoku.SimpleCli.ResultFormatting where
 
-import Sudoku.Interfaces
+import Sudoku.Interfaces (Sudoku)
 
 format :: [Sudoku] -> String
 format [] = "Not a valid sudoku; no solutions possible"

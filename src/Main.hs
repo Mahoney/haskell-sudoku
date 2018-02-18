@@ -1,7 +1,7 @@
 module Main where
 
-import System.Environment
-import Sudoku.SimpleCli.Cli
+import System.Environment (getArgs)
+import Sudoku.SimpleCli.Cli (app)
 
 main :: IO ()
 main = do
