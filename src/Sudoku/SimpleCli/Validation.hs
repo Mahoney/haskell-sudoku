@@ -16,7 +16,7 @@ validateSudoku :: String -> Either ValidationError Sudoku
 validateSudoku arg
   | length arg == 81 =
     let maybeValues =
-          leftMap (intercalate "; ") (split (fmap toCellContents arg))
+          leftMap (intercalate "; ") (leftPartition (fmap toCellContents arg))
     in fmap toSudoku maybeValues
   | otherwise = Left (
       "A valid sudoku is composed of 81 characters, each either a period (.) or 1-9; yours had "
