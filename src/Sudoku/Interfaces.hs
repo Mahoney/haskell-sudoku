@@ -57,10 +57,13 @@ impossible c = null (value c)
 unsolveable :: Sudoku -> Bool
 unsolveable (Sudoku cells) = any impossible cells
 
+rows :: Sudoku -> [[Cell]]
+rows (Sudoku cells) = chunksOf 9 cells
+
 instance Show Sudoku where
-  show (Sudoku cells) =
-    let rows = fmap showRow (chunksOf 9 cells)
-        groupedRows = fmap (intercalate "") (chunksOf 3 rows)
+  show s =
+    let rowStrings = fmap showRow (rows s)
+        groupedRows = fmap (intercalate "") (chunksOf 3 rowStrings)
     in "\n+-------+-------+-------+" ++ intercalate "\n+-------+-------+-------+" groupedRows ++ "\n+-------+-------+-------+\n"
 
 showRow :: [Cell] -> String
