@@ -15,9 +15,9 @@ validate _ = Left "Takes one argument of type sudoku"
 validateSudoku :: String -> Either ValidationError Sudoku
 validateSudoku arg
   | length arg == 81 =
-    let maybeValues =
-          leftMap (intercalate "; ") (leftPartition (fmap toCellContents arg))
-    in fmap toSudoku maybeValues
+    let eitherErrorsOrValues = leftPartition (fmap toCellContents arg)
+        eitherSingleErrorOrValues = leftMap (intercalate "; ") eitherErrorsOrValues
+    in fmap toSudoku eitherSingleErrorOrValues
   | otherwise = Left (
       "A valid sudoku is composed of 81 characters, each either a period (.) or 1-9; yours had "
       ++ show (length arg)
