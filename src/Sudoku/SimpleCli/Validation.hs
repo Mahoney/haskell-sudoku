@@ -1,6 +1,6 @@
 module Sudoku.SimpleCli.Validation (validate) where
 
-import Sudoku.Interfaces (Sudoku(..), CandidateValues, allCandidates, toSudoku)
+import Sudoku.Interfaces (Sudoku, InitialValue(..), sudoku)
 import Data.Char (digitToInt)
 import Data.List (intercalate)
 import Ext.Data.Either (leftMap, leftPartition)
@@ -17,14 +17,14 @@ validateSudoku arg
   | length arg == 81 =
     let eitherErrorsOrValues = leftPartition (fmap toCellContents arg)
         eitherSingleErrorOrValues = leftMap (intercalate "; ") eitherErrorsOrValues
-    in fmap toSudoku eitherSingleErrorOrValues
+    in fmap sudoku eitherSingleErrorOrValues
   | otherwise = Left (
       "A valid sudoku is composed of 81 characters, each either a period (.) or 1-9; yours had "
       ++ show (length arg)
     )
 
-toCellContents :: Char -> Either ValidationError CandidateValues
+toCellContents :: Char -> Either ValidationError InitialValue
 toCellContents char
-  | char == '.'              = Right allCandidates
-  | char `elem` ['1' .. '9'] = Right [digitToInt char]
+  | char == '.'              = Right X
+  | char `elem` ['1' .. '9'] = Right (toEnum $ digitToInt char)
   | otherwise                = Left (char : " is not . or 1-9")
