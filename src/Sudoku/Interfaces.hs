@@ -1,6 +1,6 @@
 module Sudoku.Interfaces where
 
-import Data.List (intercalate, groupBy)
+import Data.List (intercalate, groupBy, sortBy)
 import Data.List.Split (chunksOf)
 
 data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
@@ -59,6 +59,11 @@ unsolveable (Sudoku cells) = any impossible cells
 
 rows :: Sudoku -> [[Cell]]
 rows (Sudoku cells) = chunksOf 9 cells
+
+columns :: Sudoku -> [[Cell]]
+columns (Sudoku cells) =
+  let cols f (Cell (col1, _) _) (Cell (col2, _) _) = f col1 col2
+  in groupBy (cols (==)) . sortBy (cols compare) $ cells
 
 instance Show Sudoku where
   show s =
