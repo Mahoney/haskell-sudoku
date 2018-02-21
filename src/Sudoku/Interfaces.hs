@@ -1,6 +1,6 @@
 module Sudoku.Interfaces where
 
-import Data.List (intercalate)
+import Data.List (intercalate, groupBy)
 import Data.List.Split (chunksOf)
 
 data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
@@ -63,8 +63,15 @@ rows (Sudoku cells) = chunksOf 9 cells
 instance Show Sudoku where
   show s =
     let rowStrings = fmap showRow (rows s)
-        groupedRows = fmap (intercalate "") (chunksOf 3 rowStrings)
-    in "\n+-------+-------+-------+" ++ intercalate "\n+-------+-------+-------+" groupedRows ++ "\n+-------+-------+-------+\n"
+        groupedRows = chunksOf 3 rowStrings
+        groupedRowStrings = fmap (intercalate "") groupedRows
+        sudokuBody = intercalate horizontalSeparator groupedRowStrings
+    in horizontalSeparator ++
+       sudokuBody ++
+       horizontalSeparator++"\n"
+
+horizontalSeparator :: String
+horizontalSeparator = "\n+-------+-------+-------+"
 
 showRow :: [Cell] -> String
 showRow cells =
