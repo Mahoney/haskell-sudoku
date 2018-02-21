@@ -1,6 +1,6 @@
 module Sudoku.SimpleCli.Validation (validate) where
 
-import Sudoku.Interfaces (Sudoku(..), CandidateValues, Cell(..), allCandidates, allCoordinates)
+import Sudoku.Interfaces (Sudoku(..), CandidateValues, allCandidates, toSudoku)
 import Data.Char (digitToInt)
 import Data.List (intercalate)
 import Ext.Data.Either (leftMap, leftPartition)
@@ -28,7 +28,3 @@ toCellContents char
   | char == '.'              = Right allCandidates
   | char `elem` ['1' .. '9'] = Right [digitToInt char]
   | otherwise                = Left (char : " is not . or 1-9")
-
-toSudoku :: [CandidateValues] -> Sudoku
-toSudoku candidates =
-  Sudoku (fmap (uncurry Cell) (zip allCoordinates candidates))

@@ -21,17 +21,26 @@ data Cell = Cell {
 
 newtype Sudoku = Sudoku [Cell] deriving Eq
 
+data InitialValue = X | I1 | I2 | I3 | I4 | I5 | I6 | I7 | I8 | I9 deriving Enum
+
+toCandidates:: InitialValue -> CandidateValues
+toCandidates X = allCandidates
+toCandidates v = [fromEnum v]
+
+toSudoku :: [CandidateValues] -> Sudoku
+toSudoku candidates =
+  Sudoku (fmap (uncurry Cell) (zip allCoordinates candidates))
+
+sudoku :: [InitialValue] -> Sudoku
+sudoku vs =
+  let asCandidates = fmap toCandidates vs
+  in toSudoku asCandidates
+
 cell :: Column -> Row -> CandidateValues -> Cell
 cell c r = Cell (c, r)
 
-inked :: Column -> Row -> Int -> Cell
-inked c r i = cell c r [i]
-
 allCandidates :: [Int]
 allCandidates = [1..9]
-
-empty :: Column -> Row -> Cell
-empty c r = cell c r allCandidates
 
 allCoordinates :: [CellCoordinates]
 allCoordinates = [ (col,row) | row<-[R1 ..],col<-[A ..] ]
