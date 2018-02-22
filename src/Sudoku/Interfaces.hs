@@ -2,6 +2,7 @@ module Sudoku.Interfaces where
 
 import Data.List (intercalate, groupBy, sortBy)
 import Data.List.Split (chunksOf)
+import Control.Applicative (liftA2)
 
 data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
            deriving (Eq, Ord, Show, Read, Bounded, Enum)
@@ -42,20 +43,14 @@ cell c r = Cell (c, r)
 allCandidates :: [Int]
 allCandidates = [1..9]
 
+empty :: Column -> Row -> Cell
+empty c r = cell c r allCandidates
+
 allCoordinates :: [CellCoordinates]
 allCoordinates = [ (col,row) | row<-[R1 ..],col<-[A ..] ]
 
 emptyGrid :: Sudoku
 emptyGrid = Sudoku (fmap (`Cell` allCandidates) allCoordinates)
-
-solved :: Cell -> Bool
-solved c = length (value c) == 1
-
-impossible :: Cell -> Bool
-impossible c = null (value c)
-
-unsolveable :: Sudoku -> Bool
-unsolveable (Sudoku cells) = any impossible cells
 
 rows :: Sudoku -> [[Cell]]
 rows (Sudoku cells) = chunksOf 9 cells
@@ -65,11 +60,27 @@ columns (Sudoku cells) =
   let cols f (Cell (col1, _) _) (Cell (col2, _) _) = f col1 col2
   in groupBy (cols (==)) . sortBy (cols compare) $ cells
 
+topLeftOfSquares :: [CellCoordinates]
+topLeftOfSquares =
+  let combinationsOf = liftA2 (,)
+  in combinationsOf [A, D, G] [R1, R4, R7]
+
+allSquareCoordinates :: [[CellCoordinates]]
+allSquareCoordinates =
+  let combinationsOf = liftA2 (,)
+  in fmap (\(col, row) -> combinationsOf [col .. toEnum (fromEnum col + 2)] [row .. toEnum (fromEnum row + 2)]) topLeftOfSquares
+
+squares :: Sudoku -> [[Cell]]
+squares (Sudoku cells) =
+  let f squareCoordinates =
+        filter (\c -> coordinates c `elem` squareCoordinates) cells
+  in fmap f allSquareCoordinates
+
 instance Show Sudoku where
   show s =
     let rowStrings = fmap showRow (rows s)
         groupedRows = chunksOf 3 rowStrings
-        groupedRowStrings = fmap (intercalate "") groupedRows
+        groupedRowStrings = fmap concat groupedRows
         sudokuBody = intercalate horizontalSeparator groupedRowStrings
     in horizontalSeparator ++
        sudokuBody ++
@@ -80,7 +91,8 @@ horizontalSeparator = "\n+-------+-------+-------+"
 
 showRow :: [Cell] -> String
 showRow cells =
-  let cellsBySquare = fmap (intercalate "") (chunksOf 3 (fmap showCell cells))
+  let cellStrings = fmap showCell cells
+      cellsBySquare = fmap concat (chunksOf 3 cellStrings)
   in "\n|" ++ intercalate " |" cellsBySquare ++ " |"
 
 showCell :: Cell -> String
