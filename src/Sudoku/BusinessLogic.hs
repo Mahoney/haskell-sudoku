@@ -1,12 +1,20 @@
-module Sudoku.BusinessLogic where
+module Sudoku.BusinessLogic (
+  inMemoryTransaction,
+  solve,
+  merge,
+  mapValue,
+  coordsInSameSquare,
+  inSameSquare,
+  valueToAffectedSquare
+) where
 
 import Sudoku.Interfaces
-import qualified Data.Set as Set
-import Data.List
-import Data.Ord
+import Data.List (sortBy, groupBy, find)
+import Data.Ord (comparing)
 import Data.Maybe (fromJust, mapMaybe)
-import Data.Map.Strict (fromList, unionWith, toList)
+import qualified Data.Map.Strict as Map (fromList, unionWith, toList)
 import Control.Arrow (second)
+import Data.Set as Set (filter, Set, fromList, union, unions, map, toList, partition, isSubsetOf, (\\), elemAt, singleton)
 
 inMemoryTransaction ::
   (unvalidatedInput -> Either validationFailure input) ->
@@ -45,35 +53,30 @@ applyStrategy strategy sdku
     | otherwise                              = let simplified = strategy sdku
                                                in if simplified == sdku then sdku else applyStrategy strategy simplified
 
-returnList :: (a -> b) -> (a -> [b])
-returnList f a = [f a]
-
 simplifyBySetInIsolation :: Sudoku -> Sudoku
 simplifyBySetInIsolation s = simplifyBySetInIsolation' rows (simplifyBySetInIsolation' columns (simplifyBySetInIsolation' squares s))
 
-simplifyBySetInIsolation' :: (Sudoku -> [[Cell]]) -> Sudoku -> Sudoku
+simplifyBySetInIsolation' :: (Sudoku -> Set (Set Cell)) -> Sudoku -> Sudoku
 simplifyBySetInIsolation' setExtractor sdku =
   let sets = setExtractor sdku
-      updatedSets = fmap simplifySet sets
-  in makeSudoku (concat updatedSets)
+      updatedSets = Set.map simplifySet sets
+  in makeSudokuFromSets (unions (toList updatedSets))
 
-simplifySet :: [Cell] -> [Cell]
+simplifySet :: Set Cell -> Set Cell
 simplifySet cells =
-  let sorted = sortBy (comparing (length . value)) cells
-  in foldl (\acc c -> removeImpossibleValuesFromCellsInSet (value c) acc) sorted sorted
+  let sorted = sortBy (comparing (length . value)) (toList cells)
+  in foldl (\acc c -> removeImpossibleValuesFromCellsInSet (value c) acc) (fromList sorted) sorted
 
-removeImpossibleValuesFromCellsInSet :: CandidateValues -> [Cell] -> [Cell]
+removeImpossibleValuesFromCellsInSet :: CandidateValues -> Set Cell -> Set Cell
 removeImpossibleValuesFromCellsInSet interestingValues cells =
   let (onlyHasVals, others) =
-        partition
-          (\(Cell _ values) -> isSubsequenceOf values interestingValues)
-          cells
+        partition (\(Cell _ values) -> isSubsetOf values interestingValues) cells
   in if length onlyHasVals == length interestingValues
-       then onlyHasVals ++ removeCandidates interestingValues others
+       then onlyHasVals `union` removeCandidates interestingValues others
        else cells
 
-removeCandidates :: CandidateValues -> [Cell] -> [Cell]
-removeCandidates cand = fmap (\(Cell coords values) -> Cell coords (values \\ cand))
+removeCandidates :: CandidateValues -> Set Cell -> Set Cell
+removeCandidates cand = Set.map (\(Cell coords values) -> Cell coords (values \\ cand))
 
 solved :: Cell -> Bool
 solved c = length (value c) == 1
@@ -85,57 +88,56 @@ impossible :: Cell -> Bool
 impossible c = null (value c)
 
 unsolvable :: Sudoku -> Bool
-unsolvable s = any unsolvableSet (rows s ++ columns s ++ squares s)
+unsolvable s = any unsolvableSet (unions [rows s, columns s, squares s])
 
 hasDuplicates :: (Ord a) => [a] -> Bool
 hasDuplicates list = length list /= length set
-  where set = Set.fromList list
+  where set = fromList list
 
-unsolvableSet :: [Cell] -> Bool
+unsolvableSet :: Set Cell -> Bool
 unsolvableSet cells =
-  let solvedValues = fmap (head . value) (filter solved cells)
+  let solvedValues =
+        fmap (elemAt 0 . value) (toList (Set.filter solved cells))
   in any impossible cells || hasDuplicates solvedValues
 
-unsolved :: [Cell] -> [Cell]
-unsolved = filter (not . solved)
-
-removeDuplicates :: (Ord a) => [a] -> [a]
-removeDuplicates = map head . group . sort
+unsolved :: Set Cell -> Set Cell
+unsolved = Set.filter (not . solved)
 
 overlapStrategy :: Sudoku -> Sudoku
 overlapStrategy sdku = rowColumnOverlapStrategy rows (rowColumnOverlapStrategy columns sdku)
 
-rowColumnOverlapStrategy :: (Sudoku -> [[Cell]]) -> Sudoku -> Sudoku
+rowColumnOverlapStrategy :: (Sudoku -> Set (Set Cell)) -> Sudoku -> Sudoku
 rowColumnOverlapStrategy setExtractor sdku =
                    let sets = setExtractor sdku
                    in foldl removeOverlapRowsColumns sdku sets
 
-removeOverlapRowsColumns :: Sudoku -> [Cell] -> Sudoku
+removeOverlapRowsColumns :: Sudoku -> Set Cell -> Sudoku
 removeOverlapRowsColumns sdku set =
   let unsolvedCells = unsolved set
-      unsolvedValues = removeDuplicates (concatMap value unsolvedCells)
+      unsolvedValues = unions (toList (Set.map value unsolvedCells))
       unsolvedValuesToCoordsOfSingleSquareInWichTheyOccur =
-        removeEmpties $ fmap (valueToAffectedSquare unsolvedCells) unsolvedValues
+        removeEmpties $ Set.map (valueToAffectedSquare unsolvedCells) unsolvedValues
       unsolvedValuesToActualSquareInWhichTheyOccur =
         mapValue (findSquare sdku) unsolvedValuesToCoordsOfSingleSquareInWichTheyOccur
-      updatedCellSets = fmap (\(val, square) -> cleanseThoseNotIn set square val) unsolvedValuesToActualSquareInWhichTheyOccur
-  in merge sdku $ concat updatedCellSets
+      updatedCellSets = Set.map (\(val, square) -> cleanseThoseNotIn set square val) unsolvedValuesToActualSquareInWhichTheyOccur
+  in merge sdku $ unions (toList updatedCellSets)
 
-cleanseThoseNotIn :: [Cell] -> [Cell] -> Int -> [Cell]
+
+cleanseThoseNotIn :: Set Cell -> Set Cell -> Int -> Set Cell
 cleanseThoseNotIn setShouldHaveValues setShouldNotHaveValues val =
   let cellsToChange = setShouldNotHaveValues \\ setShouldHaveValues
-  in removeCandidates [val] cellsToChange
+  in removeCandidates (singleton val) cellsToChange
 
-valueToAffectedSquare :: [Cell] -> Int -> (Int, Maybe CellCoordinates)
+valueToAffectedSquare :: Set Cell -> Int -> (Int, Maybe CellCoordinates)
 valueToAffectedSquare unsolvedCells val =
-  let cellsWithValue = filter (elem val . value) unsolvedCells
-      coordsWithValue = fmap coordinates cellsWithValue
+  let cellsWithValue = Set.filter (elem val . value) unsolvedCells
+      coordsWithValue = Set.map coordinates cellsWithValue
       square = coordsInSameSquare coordsWithValue
   in (val, square)
 
-coordsInSameSquare :: [CellCoordinates] -> Maybe CellCoordinates
+coordsInSameSquare :: Set CellCoordinates -> Maybe CellCoordinates
 coordsInSameSquare coords =
-  let bySquare = groupBy inSameSquare coords
+  let bySquare = groupBy inSameSquare (toList coords)
       allInSameSquare = length bySquare == 1
 
   in if allInSameSquare then Just (head (head bySquare)) else Nothing
@@ -146,16 +148,16 @@ inSameSquare (col1, row1) (col2, row2) = inSameSquare' col1 col2 && inSameSquare
 inSameSquare' :: (Enum a, Show a) => a -> a -> Bool
 inSameSquare' c1 c2 = (fromEnum c1 `div` 3) == (fromEnum c2 `div` 3)
 
-findSquare :: Sudoku -> CellCoordinates -> [Cell]
+findSquare :: Sudoku -> CellCoordinates -> Set Cell
 findSquare sdku cellCoords =
-  fromJust $ find (elem cellCoords . fmap coordinates) (squares sdku)
+  fromJust $ find (elem cellCoords . Set.map coordinates) (squares sdku)
 
-merge :: Sudoku -> [Cell] -> Sudoku
+merge :: Sudoku -> Set Cell -> Sudoku
 merge sdku changedCells =
-  let original = fromList (fmap cellToTuple (getCells sdku))
-      changed = fromList (fmap cellToTuple changedCells)
-      merged = unionWith (\_ cell2 -> cell2) original changed
-  in makeSudoku $ fmap tupleToCell (toList merged)
+  let original = Map.fromList (fmap cellToTuple (toList (getCells sdku)))
+      changed = Map.fromList (fmap cellToTuple (toList changedCells))
+      merged = Map.unionWith (\_ cell2 -> cell2) original changed
+  in makeSudoku $ fmap tupleToCell (Map.toList merged)
 
 cellToTuple :: Cell -> (CellCoordinates, CandidateValues)
 cellToTuple (Cell coords values) = (coords, values)
@@ -167,8 +169,8 @@ toMaybe :: (a, Maybe b) -> Maybe (a, b)
 toMaybe (key, Just val) = Just (key, val)
 toMaybe (_, Nothing) = Nothing
 
-removeEmpties :: [(a, Maybe b)] -> [(a, b)]
-removeEmpties = mapMaybe toMaybe
+removeEmpties :: (Ord a, Ord b) => Set (a, Maybe b) -> Set (a, b)
+removeEmpties withEmpties = fromList (mapMaybe toMaybe (toList withEmpties))
 
-mapValue :: (b -> c) -> [(a, b)] -> [(a, c)]
-mapValue f = fmap (second f)
+mapValue :: (Ord a, Ord b, Ord c) => (b -> c) -> Set (a, b) -> Set (a, c)
+mapValue f = Set.map (second f)

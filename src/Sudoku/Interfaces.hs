@@ -3,6 +3,7 @@ module Sudoku.Interfaces (
   CandidateValues,
   CellCoordinates,
   makeSudoku,
+  makeSudokuFromSets,
   sudoku,
   getCells,
   Row(..),
@@ -17,20 +18,20 @@ module Sudoku.Interfaces (
   cell
   ) where
 
-import Data.Ord (comparing)
 import Data.List (intercalate, groupBy, sortBy)
+import Data.Set as Set (Set, fromList, toList, map, filter )
 import Data.List.Split (chunksOf)
 import Control.Applicative (liftA2)
 
-data Row = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9
+data Column = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9
            deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
-data Column = A | B | C | D | E | F | G | H | I
+data Row = A | B | C | D | E | F | G | H | I
            deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
-type CandidateValues = [Int]
+type CandidateValues = Set Int
 
-type CellCoordinates = (Column, Row)
+type CellCoordinates = (Row, Column)
 
 data Cell = Cell {
               coordinates :: CellCoordinates,
@@ -38,73 +39,80 @@ data Cell = Cell {
             }
             deriving (Eq, Ord)
 instance Show Cell where
-  show (Cell (col, row) candidates) = show col ++ show (fromEnum row + 1) ++ ":" ++ show candidates
+  show (Cell (row, col) candidates) = show (fromEnum row + 1) ++ show col ++ ":" ++ show candidates
 
-newtype Sudoku = Sudoku [Cell] deriving Eq
+newtype Sudoku = Sudoku (Set Cell) deriving Eq
 
 data InitialValue = X | I1 | I2 | I3 | I4 | I5 | I6 | I7 | I8 | I9 deriving Enum
 
-makeSudoku :: [Cell] -> Sudoku
-makeSudoku cells = let orderedCells = sortBy (comparing coordinates) cells  in Sudoku orderedCells
+makeSudokuFromSets :: Set Cell -> Sudoku
+makeSudokuFromSets = Sudoku
 
-getCells :: Sudoku -> [Cell]
+makeSudoku :: [Cell] -> Sudoku
+makeSudoku cells = Sudoku (fromList cells)
+
+getCells :: Sudoku -> Set Cell
 getCells (Sudoku cells) = cells
 
 toCandidates:: InitialValue -> CandidateValues
 toCandidates X = allCandidates
-toCandidates v = [fromEnum v]
+toCandidates v = fromList [fromEnum v]
 
 toSudoku :: [CandidateValues] -> Sudoku
 toSudoku candidates =
-  makeSudoku (fmap (uncurry Cell) (zip allCoordinates candidates))
+  Sudoku (Set.map (uncurry Cell) (fromList (zip (toList allCoordinates) candidates)))
 
 sudoku :: [InitialValue] -> Sudoku
 sudoku vs =
   let asCandidates = fmap toCandidates vs
   in toSudoku asCandidates
 
-cell :: Column -> Row -> CandidateValues -> Cell
-cell c r = Cell (c, r)
+cell :: Row -> Column -> [Int] -> Cell
+cell r c ints = Cell (r, c) (fromList ints)
 
-allCandidates :: [Int]
-allCandidates = [1..9]
+allCandidates :: Set Int
+allCandidates = fromList [1..9]
 
-empty :: Column -> Row -> Cell
-empty c r = cell c r allCandidates
+empty :: Row -> Column -> Cell
+empty r c = Cell (r, c) allCandidates
 
-allCoordinates :: [CellCoordinates]
-allCoordinates = [ (col,row) | row<-[R1 ..],col<-[A ..] ]
+allCoordinates :: Set CellCoordinates
+allCoordinates = fromList [ (row,col) | row<-[A ..],col<-[C1 ..] ]
 
 emptyGrid :: Sudoku
-emptyGrid = makeSudoku (fmap (`Cell` allCandidates) allCoordinates)
+emptyGrid = Sudoku (Set.map (`Cell` allCandidates) allCoordinates)
 
-rows :: Sudoku -> [[Cell]]
-rows (Sudoku cells) =
-  let rs f (Cell (_, r1) _) (Cell (_, r2) _) = f r1 r2
-  in groupBy (rs (==)) . sortBy (rs compare) $ cells
+rows :: Sudoku -> Set (Set Cell)
+rows (Sudoku cellSet) =
+  let rs f (Cell (r1, _) _) (Cell (r2, _) _) = f r1 r2
+      cells = toList cellSet
+      rowsAsList = groupBy (rs (==)) . sortBy (rs compare) $ cells
+  in fromList (fmap fromList rowsAsList)
 
-columns :: Sudoku -> [[Cell]]
-columns (Sudoku cells) =
-  let cols f (Cell (col1, _) _) (Cell (col2, _) _) = f col1 col2
-  in groupBy (cols (==)) . sortBy (cols compare) $ cells
+columns :: Sudoku -> Set (Set Cell)
+columns (Sudoku cellSet) =
+  let cols f (Cell (_, col1) _) (Cell (_, col2) _) = f col1 col2
+      cells = toList cellSet
+      colsAsList = groupBy (cols (==)) . sortBy (cols compare) $ cells
+  in fromList (fmap fromList colsAsList)
 
 combinationsOf :: [a] -> [b] -> [(a,b)]
 combinationsOf = liftA2 (,)
 
-allSquareCoordinates :: [[CellCoordinates]]
+allSquareCoordinates :: Set (Set CellCoordinates)
 allSquareCoordinates =
-  let topLeftOfSquares = combinationsOf [A, D, G] [R1, R4, R7]
-  in fmap (\(col, row) -> combinationsOf [col .. toEnum (fromEnum col + 2)] [row .. toEnum (fromEnum row + 2)]) topLeftOfSquares
+  let topLeftOfSquares = fromList (combinationsOf [A, D, G] [C1, C4, C7])
+  in Set.map (\(col, row) -> fromList $ combinationsOf [col .. toEnum (fromEnum col + 2)] [row .. toEnum (fromEnum row + 2)]) topLeftOfSquares
 
-squares :: Sudoku -> [[Cell]]
+squares :: Sudoku -> Set (Set Cell)
 squares (Sudoku cells) =
   let f squareCoordinates =
-        filter (\c -> coordinates c `elem` squareCoordinates) cells
-  in fmap f allSquareCoordinates
+        Set.filter (\c -> coordinates c `elem` squareCoordinates) cells
+  in Set.map f allSquareCoordinates
 
 instance Show Sudoku where
   show s =
-    let rowStrings = fmap showRow (rows s)
+    let rowStrings = fmap showRow (toList (rows s))
         groupedRows = chunksOf 3 rowStrings
         groupedRowStrings = fmap concat groupedRows
         sudokuBody = intercalate horizontalSeparator groupedRowStrings
@@ -115,12 +123,16 @@ instance Show Sudoku where
 horizontalSeparator :: String
 horizontalSeparator = "\n+-------+-------+-------+"
 
-showRow :: [Cell] -> String
-showRow cells =
-  let cellStrings = fmap showCell cells
+showRow :: Set Cell -> String
+showRow cellSet =
+  let cells = toList cellSet
+      cellStrings = fmap showCell cells
       cellsBySquare = fmap concat (chunksOf 3 cellStrings)
   in "\n|" ++ intercalate " |" cellsBySquare ++ " |"
 
 showCell :: Cell -> String
-showCell (Cell _ [singleValue]) = " " ++ show singleValue
-showCell _ = " ."
+showCell (Cell _ vals) = showVals (toList vals)
+
+showVals :: [Int] -> String
+showVals [x] = " " ++ show x
+showVals _ = " ."

@@ -4,6 +4,7 @@ import Test.Hspec
 
 import Sudoku.BusinessLogic
 import Sudoku.Interfaces
+import Data.Set (fromList, elemAt)
 
 spec :: Spec
 spec =
@@ -72,46 +73,46 @@ spec =
                                      X, I7,  X,  X, I1, I5,  X, I6,  X,
                                      X, I4,  X,  X,  X, I1, I7,  X,  X,
                                      X, I1, I5, I3,  X,  X, I9,  X,  X,
-                                    I7,  X,  X,  X,  X,  X,  X, I1,  X]) [cell I R9 [5]]
-        in last (last (columns result)) `shouldBe` cell I R9 [5]
+                                    I7,  X,  X,  X,  X,  X,  X, I1,  X]) (fromList [cell I C9 [5]])
+        in elemAt 8 (elemAt 8 (columns result)) `shouldBe` cell I C9 [5]
 
     describe "mapValue" $
       it "changes value" $
-        mapValue (* (3 :: Int)) [("val1", 1), ("val2", 2)] `shouldBe` [("val1", 3), ("val2", 6)]
+        mapValue (* (3 :: Int)) (fromList [("val1", 1), ("val2", 2)]) `shouldBe` fromList [("val1", 3), ("val2", 6)]
 
-    describe "removeEmpties" $
-      it "removes empties" $
-        removeEmpties [("val1", Just "1"), ("val2", Nothing), ("val3", Just "3")] `shouldBe` [("val1", "1"), ("val3", "3")]
+--    describe "removeEmpties" $
+--      it "removes empties" $
+--        removeEmpties [("val1", Just "1"), ("val2", Nothing), ("val3", Just "3")] `shouldBe` [("val1", "1"), ("val3", "3")]
 
     describe "coordsInSameSquare" $ do
       it "returns one coord if in same square" $
-        coordsInSameSquare [(E,R4), (F,R4), (F, R6)] `shouldBe` Just (E,R4)
+        coordsInSameSquare (fromList [(E,C4), (F,C4), (F, C6)]) `shouldBe` Just (E,C4)
 
       it "returns Nothing if not in same coords" $
-        coordsInSameSquare [(B,R1), (C,R1), (D,R1)] `shouldBe` Nothing
+        coordsInSameSquare (fromList [(B,C1), (C,C1), (D,C1)]) `shouldBe` Nothing
 
     describe "inSameSquare" $ do
       it "returns true if in same square" $
-        inSameSquare (B,R1) (C,R1) `shouldBe` True
+        inSameSquare (B,C1) (C,C1) `shouldBe` True
 
       it "returns true if in same square" $
-        inSameSquare (C,R1) (B,R1) `shouldBe` True
+        inSameSquare (C,C1) (B,C1) `shouldBe` True
 
       it "returns false if not in same square" $
-        inSameSquare (B,R1) (D,R1) `shouldBe` False
+        inSameSquare (B,C1) (D,C1) `shouldBe` False
 
       it "returns false if not in same square" $
-        inSameSquare (D,R1) (B,R1) `shouldBe` False
+        inSameSquare (D,C1) (B,C1) `shouldBe` False
 
       it "returns false if not in same square" $
-        inSameSquare (C,R1) (D,R1) `shouldBe` False
+        inSameSquare (C,C1) (D,C1) `shouldBe` False
 
       it "returns false if not in same square" $
-        inSameSquare (D,R1) (C,R1) `shouldBe` False
+        inSameSquare (D,C1) (C,C1) `shouldBe` False
 
     describe "valueToAffectedSquare" $ do
       it "returns the affected aquare if only one" $
-        valueToAffectedSquare [cell B R1 [1,2], cell C R1 [1,2], cell D R1 [1]] 2 `shouldBe` (2, Just (B,R1))
+        valueToAffectedSquare (fromList [cell B C1 [1,2], cell C C1 [1,2], cell D C1 [1]]) 2 `shouldBe` (2, Just (B,C1))
 
       it "returns Nothing if value in multiple squares" $
-        valueToAffectedSquare [cell B R1 [1,2], cell C R1 [1,2], cell D R1 [1,2]] 2 `shouldBe` (2, Nothing)
+        valueToAffectedSquare (fromList [cell B C1 [1,2], cell C C1 [1,2], cell D C1 [1,2]]) 2 `shouldBe` (2, Nothing)

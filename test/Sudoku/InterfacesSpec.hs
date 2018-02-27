@@ -3,6 +3,7 @@ module Sudoku.InterfacesSpec where
 import Test.Hspec
 
 import Sudoku.Interfaces
+import Data.Set (elemAt, fromList)
 
 spec :: Spec
 spec =
@@ -50,10 +51,10 @@ spec =
     describe "columns" $
       it "groups cells by column" $
         columns (makeSudoku
-                  [Cell (A, R1) [1], Cell (B, R1) [2],
-                   Cell (A, R2) [3], Cell (B, R2) [4]])
-        `shouldBe` [[Cell (A, R1) [1], Cell (A, R2) [3]],
-                    [Cell (B, R1) [2], Cell (B, R2) [4]]]
+                  [cell A C1 [1], cell A C2 [2],
+                   cell B C1 [3], cell B C2 [4]])
+        `shouldBe` fromList [ fromList [cell A C1 [1], cell B C1 [3]],
+                              fromList [cell A C2 [2], cell B C2 [4]]]
 
     describe "squares" $ do
       it "groups cells by square and makes 9" $
@@ -63,15 +64,15 @@ spec =
         all (\square -> length square == 9) (squares emptyGrid)
 
       it "groups cells by square checking first" $
-        head (squares emptyGrid)
+        elemAt 0 (squares emptyGrid)
         `shouldBe`
-        [empty A R1, empty A R2, empty A R3,
-         empty B R1, empty B R2, empty B R3,
-         empty C R1, empty C R2, empty C R3]
+        fromList [empty A C1, empty A C2, empty A C3,
+         empty B C1, empty B C2, empty B C3,
+         empty C C1, empty C C2, empty C C3]
 
       it "groups cells by square checking last" $
-        last (squares emptyGrid)
+        elemAt 8 (squares emptyGrid)
         `shouldBe`
-        [empty G R7, empty G R8, empty G R9,
-         empty H R7, empty H R8, empty H R9,
-         empty I R7, empty I R8, empty I R9]
+        fromList [empty G C7, empty G C8, empty G C9,
+                  empty H C7, empty H C8, empty H C9,
+                  empty I C7, empty I C8, empty I C9]
