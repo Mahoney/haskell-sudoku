@@ -22,7 +22,7 @@ spec =
              transaction = inMemoryTransaction validator undefined businessLogic formatter
          in transaction "text right here" `shouldBe` "4 5 4"
 
-    describe "solve" $
+    describe "solve" $ do
       it "solves a valid known sudoku" $
         let result = solve $ sudoku  [ X,  X,  X,  X,  X,  X, I3,  X,  X,
                                       I6,  X,  X,  X, I2,  X, I1,  X,  X,
@@ -42,3 +42,76 @@ spec =
                                       I3, I7, I9, I1, I6, I5, I8, I2, I4,
                                       I2, I6, I4, I7, I8, I3, I9, I5, I1,
                                       I8, I1, I5, I4, I9, I2, I7, I3, I6]]
+
+      it "solves another valid known sudoku" $
+        let result = solve $ sudoku  [ X,  X,  X,  X,  X,  X,  X,  X,  X,
+                                      I6,  X,  X, I7, I3,  X,  X,  X,  X,
+                                       X, I5, I1,  X,  X, I9,  X,  X,  X,
+                                       X,  X, I9, I4,  X, I2, I5,  X,  X,
+                                       X,  X,  X, I8,  X,  X,  X, I7,  X,
+                                       X, I7,  X,  X, I1, I5,  X, I6,  X,
+                                       X, I4,  X,  X,  X, I1, I7,  X,  X,
+                                       X, I1, I5, I3,  X,  X, I9,  X,  X,
+                                      I7,  X,  X,  X,  X,  X,  X, I1,  X]
+        in result `shouldBe` [sudoku [ X,  X, I7, I1, I5,  X,  X, I9,  X,
+                                      I6, I9,  X, I7, I3,  X,  X, I5, I1,
+                                       X, I5, I1,  X,  X, I9,  X,  X, I7,
+                                      I1, I6, I9, I4, I7, I2, I5,  X,  X,
+                                      I5, I2, I4, I8, I6, I3, I1, I7, I9,
+                                       X, I7,  X, I9, I1, I5,  X, I6,  X,
+                                      I9, I4,  X,  X,  X, I1, I7,  X,  X,
+                                       X, I1, I5, I3,  X, I7, I9,  X, I6,
+                                      I7,  X,  X,  X, I9,  X,  X, I1,  X]]
+    describe "merge" $
+      it "merges changed cells into a sudoku" $
+        let result = merge (sudoku  [ X,  X,  X,  X,  X,  X,  X,  X,  X,
+                                    I6,  X,  X, I7, I3,  X,  X,  X,  X,
+                                     X, I5, I1,  X,  X, I9,  X,  X,  X,
+                                     X,  X, I9, I4,  X, I2, I5,  X,  X,
+                                     X,  X,  X, I8,  X,  X,  X, I7,  X,
+                                     X, I7,  X,  X, I1, I5,  X, I6,  X,
+                                     X, I4,  X,  X,  X, I1, I7,  X,  X,
+                                     X, I1, I5, I3,  X,  X, I9,  X,  X,
+                                    I7,  X,  X,  X,  X,  X,  X, I1,  X]) [cell I R9 [5]]
+        in last (last (columns result)) `shouldBe` cell I R9 [5]
+
+    describe "mapValue" $
+      it "changes value" $
+        mapValue (* (3 :: Int)) [("val1", 1), ("val2", 2)] `shouldBe` [("val1", 3), ("val2", 6)]
+
+    describe "removeEmpties" $
+      it "removes empties" $
+        removeEmpties [("val1", Just "1"), ("val2", Nothing), ("val3", Just "3")] `shouldBe` [("val1", "1"), ("val3", "3")]
+
+    describe "coordsInSameSquare" $ do
+      it "returns one coord if in same square" $
+        coordsInSameSquare [(E,R4), (F,R4), (F, R6)] `shouldBe` Just (E,R4)
+
+      it "returns Nothing if not in same coords" $
+        coordsInSameSquare [(B,R1), (C,R1), (D,R1)] `shouldBe` Nothing
+
+    describe "inSameSquare" $ do
+      it "returns true if in same square" $
+        inSameSquare (B,R1) (C,R1) `shouldBe` True
+
+      it "returns true if in same square" $
+        inSameSquare (C,R1) (B,R1) `shouldBe` True
+
+      it "returns false if not in same square" $
+        inSameSquare (B,R1) (D,R1) `shouldBe` False
+
+      it "returns false if not in same square" $
+        inSameSquare (D,R1) (B,R1) `shouldBe` False
+
+      it "returns false if not in same square" $
+        inSameSquare (C,R1) (D,R1) `shouldBe` False
+
+      it "returns false if not in same square" $
+        inSameSquare (D,R1) (C,R1) `shouldBe` False
+
+    describe "valueToAffectedSquare" $ do
+      it "returns the affected aquare if only one" $
+        valueToAffectedSquare [cell B R1 [1,2], cell C R1 [1,2], cell D R1 [1]] 2 `shouldBe` (2, Just (B,R1))
+
+      it "returns Nothing if value in multiple squares" $
+        valueToAffectedSquare [cell B R1 [1,2], cell C R1 [1,2], cell D R1 [1,2]] 2 `shouldBe` (2, Nothing)

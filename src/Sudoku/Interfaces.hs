@@ -1,5 +1,23 @@
-module Sudoku.Interfaces where
+module Sudoku.Interfaces (
+  Sudoku,
+  CandidateValues,
+  CellCoordinates,
+  makeSudoku,
+  sudoku,
+  getCells,
+  Row(..),
+  Column(..),
+  Cell(..),
+  InitialValue(..),
+  rows,
+  columns,
+  squares,
+  emptyGrid,
+  empty,
+  cell
+  ) where
 
+import Data.Ord (comparing)
 import Data.List (intercalate, groupBy, sortBy)
 import Data.List.Split (chunksOf)
 import Control.Applicative (liftA2)
@@ -18,11 +36,19 @@ data Cell = Cell {
               coordinates :: CellCoordinates,
               value :: CandidateValues
             }
-            deriving (Eq, Ord, Show)
+            deriving (Eq, Ord)
+instance Show Cell where
+  show (Cell (col, row) candidates) = show col ++ show (fromEnum row + 1) ++ ":" ++ show candidates
 
 newtype Sudoku = Sudoku [Cell] deriving Eq
 
 data InitialValue = X | I1 | I2 | I3 | I4 | I5 | I6 | I7 | I8 | I9 deriving Enum
+
+makeSudoku :: [Cell] -> Sudoku
+makeSudoku cells = let orderedCells = sortBy (comparing coordinates) cells  in Sudoku orderedCells
+
+getCells :: Sudoku -> [Cell]
+getCells (Sudoku cells) = cells
 
 toCandidates:: InitialValue -> CandidateValues
 toCandidates X = allCandidates
@@ -30,7 +56,7 @@ toCandidates v = [fromEnum v]
 
 toSudoku :: [CandidateValues] -> Sudoku
 toSudoku candidates =
-  Sudoku (fmap (uncurry Cell) (zip allCoordinates candidates))
+  makeSudoku (fmap (uncurry Cell) (zip allCoordinates candidates))
 
 sudoku :: [InitialValue] -> Sudoku
 sudoku vs =
@@ -50,24 +76,24 @@ allCoordinates :: [CellCoordinates]
 allCoordinates = [ (col,row) | row<-[R1 ..],col<-[A ..] ]
 
 emptyGrid :: Sudoku
-emptyGrid = Sudoku (fmap (`Cell` allCandidates) allCoordinates)
+emptyGrid = makeSudoku (fmap (`Cell` allCandidates) allCoordinates)
 
 rows :: Sudoku -> [[Cell]]
-rows (Sudoku cells) = chunksOf 9 cells
+rows (Sudoku cells) =
+  let rs f (Cell (_, r1) _) (Cell (_, r2) _) = f r1 r2
+  in groupBy (rs (==)) . sortBy (rs compare) $ cells
 
 columns :: Sudoku -> [[Cell]]
 columns (Sudoku cells) =
   let cols f (Cell (col1, _) _) (Cell (col2, _) _) = f col1 col2
   in groupBy (cols (==)) . sortBy (cols compare) $ cells
 
-topLeftOfSquares :: [CellCoordinates]
-topLeftOfSquares =
-  let combinationsOf = liftA2 (,)
-  in combinationsOf [A, D, G] [R1, R4, R7]
+combinationsOf :: [a] -> [b] -> [(a,b)]
+combinationsOf = liftA2 (,)
 
 allSquareCoordinates :: [[CellCoordinates]]
 allSquareCoordinates =
-  let combinationsOf = liftA2 (,)
+  let topLeftOfSquares = combinationsOf [A, D, G] [R1, R4, R7]
   in fmap (\(col, row) -> combinationsOf [col .. toEnum (fromEnum col + 2)] [row .. toEnum (fromEnum row + 2)]) topLeftOfSquares
 
 squares :: Sudoku -> [[Cell]]

@@ -49,7 +49,7 @@ spec =
 
     describe "columns" $
       it "groups cells by column" $
-        columns (Sudoku
+        columns (makeSudoku
                   [Cell (A, R1) [1], Cell (B, R1) [2],
                    Cell (A, R2) [3], Cell (B, R2) [4]])
         `shouldBe` [[Cell (A, R1) [1], Cell (A, R2) [3]],
@@ -65,13 +65,13 @@ spec =
       it "groups cells by square checking first" $
         head (squares emptyGrid)
         `shouldBe`
-        [empty A R1, empty B R1, empty C R1,
-         empty A R2, empty B R2, empty C R2,
-         empty A R3, empty B R3, empty C R3]
+        [empty A R1, empty A R2, empty A R3,
+         empty B R1, empty B R2, empty B R3,
+         empty C R1, empty C R2, empty C R3]
 
       it "groups cells by square checking last" $
         last (squares emptyGrid)
         `shouldBe`
-        [empty G R7, empty H R7, empty I R7,
-         empty G R8, empty H R8, empty I R8,
-         empty G R9, empty H R9, empty I R9]
+        [empty G R7, empty G R8, empty G R9,
+         empty H R7, empty H R8, empty H R9,
+         empty I R7, empty I R8, empty I R9]
