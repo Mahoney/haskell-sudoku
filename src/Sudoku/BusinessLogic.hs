@@ -9,9 +9,8 @@ module Sudoku.BusinessLogic (
 ) where
 
 import Sudoku.Interfaces
-import Data.List (sortBy, groupBy, find)
+import Data.List (sortBy, groupBy)
 import Data.Ord (comparing)
-import Data.Maybe (fromJust, mapMaybe)
 import qualified Data.Map.Strict as Map (fromList, unionWith, toList)
 import Control.Arrow (second)
 import Data.Set as Set (filter, Set, fromList, union, unions, map, toList, partition, isSubsetOf, (\\), elemAt, singleton)
@@ -29,7 +28,7 @@ inMemoryTransaction validator validationFailedFormatter businessLogic resultForm
 
 solve :: Sudoku -> [Sudoku]
 solve sdku =
-  let result = applyStrategies [simplifyBySetInIsolation, overlapStrategy] sdku
+  let result = applyStrategies [simplifyBySetInIsolation, simplifyOverlapsBetweenSets] sdku
   in if result == [sdku] || null result
        then result
        else solve $ head result
@@ -63,9 +62,9 @@ simplifyBySetInIsolation' setExtractor sdku =
   in makeSudokuFromSets (unions (toList updatedSets))
 
 simplifySet :: Set Cell -> Set Cell
-simplifySet cells =
-  let sorted = sortBy (comparing (length . value)) (toList cells)
-  in foldl (\acc c -> removeImpossibleValuesFromCellsInSet (value c) acc) (fromList sorted) sorted
+simplifySet set =
+  let sortedByNumberOfCandidates = sortBy (comparing (length . value)) (toList set)
+  in foldl (\acc c -> removeImpossibleValuesFromCellsInSet (value c) acc) (fromList sortedByNumberOfCandidates) sortedByNumberOfCandidates
 
 removeImpossibleValuesFromCellsInSet :: CandidateValues -> Set Cell -> Set Cell
 removeImpossibleValuesFromCellsInSet interestingValues cells =
@@ -103,31 +102,6 @@ unsolvableSet cells =
 unsolved :: Set Cell -> Set Cell
 unsolved = Set.filter (not . solved)
 
-overlapStrategy :: Sudoku -> Sudoku
-overlapStrategy sdku = rowColumnOverlapStrategy rows (rowColumnOverlapStrategy columns sdku)
-
-rowColumnOverlapStrategy :: (Sudoku -> Set (Set Cell)) -> Sudoku -> Sudoku
-rowColumnOverlapStrategy setExtractor sdku =
-                   let sets = setExtractor sdku
-                   in foldl removeOverlapRowsColumns sdku sets
-
-removeOverlapRowsColumns :: Sudoku -> Set Cell -> Sudoku
-removeOverlapRowsColumns sdku set =
-  let unsolvedCells = unsolved set
-      unsolvedValues = unions (toList (Set.map value unsolvedCells))
-      unsolvedValuesToCoordsOfSingleSquareInWichTheyOccur =
-        removeEmpties $ Set.map (valueToAffectedSquare unsolvedCells) unsolvedValues
-      unsolvedValuesToActualSquareInWhichTheyOccur =
-        mapValue (findSquare sdku) unsolvedValuesToCoordsOfSingleSquareInWichTheyOccur
-      updatedCellSets = Set.map (\(val, square) -> cleanseThoseNotIn set square val) unsolvedValuesToActualSquareInWhichTheyOccur
-  in merge sdku $ unions (toList updatedCellSets)
-
-
-cleanseThoseNotIn :: Set Cell -> Set Cell -> Int -> Set Cell
-cleanseThoseNotIn setShouldHaveValues setShouldNotHaveValues val =
-  let cellsToChange = setShouldNotHaveValues \\ setShouldHaveValues
-  in removeCandidates (singleton val) cellsToChange
-
 valueToAffectedSquare :: Set Cell -> Int -> (Int, Maybe CellCoordinates)
 valueToAffectedSquare unsolvedCells val =
   let cellsWithValue = Set.filter (elem val . value) unsolvedCells
@@ -148,10 +122,6 @@ inSameSquare (col1, row1) (col2, row2) = inSameSquare' col1 col2 && inSameSquare
 inSameSquare' :: (Enum a, Show a) => a -> a -> Bool
 inSameSquare' c1 c2 = (fromEnum c1 `div` 3) == (fromEnum c2 `div` 3)
 
-findSquare :: Sudoku -> CellCoordinates -> Set Cell
-findSquare sdku cellCoords =
-  fromJust $ find (elem cellCoords . Set.map coordinates) (squares sdku)
-
 merge :: Sudoku -> Set Cell -> Sudoku
 merge sdku changedCells =
   let original = Map.fromList (fmap cellToTuple (toList (getCells sdku)))
@@ -165,12 +135,37 @@ cellToTuple (Cell coords values) = (coords, values)
 tupleToCell :: (CellCoordinates, CandidateValues) -> Cell
 tupleToCell (coords, values) = Cell coords values
 
-toMaybe :: (a, Maybe b) -> Maybe (a, b)
-toMaybe (key, Just val) = Just (key, val)
-toMaybe (_, Nothing) = Nothing
-
-removeEmpties :: (Ord a, Ord b) => Set (a, Maybe b) -> Set (a, b)
-removeEmpties withEmpties = fromList (mapMaybe toMaybe (toList withEmpties))
-
 mapValue :: (Ord a, Ord b, Ord c) => (b -> c) -> Set (a, b) -> Set (a, c)
 mapValue f = Set.map (second f)
+
+simplifyOverlapsBetweenSets :: Sudoku -> Sudoku
+simplifyOverlapsBetweenSets sdku =
+  let allSets = unions [squares sdku, rows sdku, columns sdku]
+      unsolvedValuesBySet = Set.map unsolvedValueToCells allSets -- for each set, a list of unsolved values to the cells they could be in
+      valuesToCellsThatShouldNotHaveItBySet = unions $ toList $ Set.map (valuesToCellsThatShouldNotHaveIt allSets) unsolvedValuesBySet
+      changed =  unions $ toList $ Set.map (uncurry removeAndReturnChanged) valuesToCellsThatShouldNotHaveItBySet
+  in merge sdku changed
+
+unsolvedValueToCells :: Set Cell -> Set (Int, Set Cell)
+unsolvedValueToCells set =
+  let unsolvedCells = unsolved set
+      unsolvedValues = unions (toList (Set.map value unsolvedCells))
+  in Set.map (groupByCandidateValue unsolvedCells) unsolvedValues
+
+groupByCandidateValue :: Set Cell -> Int -> (Int, Set Cell)
+groupByCandidateValue cells val = (val, Set.filter (elem val . value) cells)
+
+valuesToCellsThatShouldNotHaveIt :: Set (Set Cell) -> Set (Int, Set Cell) -> Set (Int, Set Cell)
+valuesToCellsThatShouldNotHaveIt allSets = Set.map (`valueToCellsThatShouldNotHaveIt` allSets)
+
+valueToCellsThatShouldNotHaveIt :: (Int, Set Cell) -> Set (Set Cell) -> (Int, Set Cell)
+valueToCellsThatShouldNotHaveIt (val, cellsWithVal) allSets =
+  let setsWithAllCells =
+        Set.filter (\set -> cellsWithVal `isSubsetOf` set) allSets -- should find the set they came from originally and maybe one other
+      cellsToChange = Set.map (\\ cellsWithVal) setsWithAllCells
+  in (val, unions (toList cellsToChange))
+
+removeAndReturnChanged :: Int -> Set Cell -> Set Cell
+removeAndReturnChanged val cells =
+  let cellsWithValue = Set.filter (elem val . value) cells
+  in removeCandidates (singleton val) cellsWithValue

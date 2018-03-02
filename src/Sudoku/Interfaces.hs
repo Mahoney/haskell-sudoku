@@ -39,7 +39,7 @@ data Cell = Cell {
             }
             deriving (Eq, Ord)
 instance Show Cell where
-  show (Cell (row, col) candidates) = show (fromEnum row + 1) ++ show col ++ ":" ++ show candidates
+  show (Cell (row, col) candidates) = show row ++ show (fromEnum col + 1) ++ ":" ++ show (toList candidates)
 
 newtype Sudoku = Sudoku (Set Cell) deriving Eq
 
