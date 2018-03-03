@@ -18,8 +18,9 @@ module Sudoku.Interfaces (
   cell
   ) where
 
+import Data.Strings (strPadLeft)
 import Data.List (intercalate, groupBy, sortBy)
-import Data.Set as Set (Set, fromList, toList, map, filter )
+import Data.Set as Set (Set, fromList, toList, map, filter, findMax )
 import Data.List.Split (chunksOf)
 import Control.Applicative (liftA2)
 
@@ -110,29 +111,31 @@ squares (Sudoku cells) =
         Set.filter (\c -> coordinates c `elem` squareCoordinates) cells
   in Set.map f allSquareCoordinates
 
+maxCandidateValues :: Set Cell -> Int
+maxCandidateValues cells = findMax (Set.map (length . value) cells)
+
 instance Show Sudoku where
   show s =
-    let rowStrings = fmap showRow (toList (rows s))
+    let padding = maxCandidateValues (getCells s) * 2
+        rowStrings = fmap (showRow padding) (toList (rows s))
         groupedRows = chunksOf 3 rowStrings
         groupedRowStrings = fmap concat groupedRows
+        squareTopOrBottom = replicate ((padding*3)+1) '-'
+        horizontalSeparator = "\n+"++squareTopOrBottom++"+"++squareTopOrBottom++"+"++squareTopOrBottom++"+"
         sudokuBody = intercalate horizontalSeparator groupedRowStrings
     in horizontalSeparator ++
        sudokuBody ++
        horizontalSeparator++"\n"
 
-horizontalSeparator :: String
-horizontalSeparator = "\n+-------+-------+-------+"
-
-showRow :: Set Cell -> String
-showRow cellSet =
+showRow :: Int -> Set Cell -> String
+showRow padding cellSet =
   let cells = toList cellSet
-      cellStrings = fmap showCell cells
+      cellStrings = fmap (showCell padding) cells
       cellsBySquare = fmap concat (chunksOf 3 cellStrings)
   in "\n|" ++ intercalate " |" cellsBySquare ++ " |"
 
-showCell :: Cell -> String
-showCell (Cell _ vals) = showVals (toList vals)
+showCell :: Int -> Cell -> String
+showCell padding (Cell _ vals) = showVals padding (toList vals)
 
-showVals :: [Int] -> String
-showVals [x] = " " ++ show x
-showVals _ = " ."
+showVals :: Int -> [Int] -> String
+showVals padding vals = strPadLeft ' ' padding (" " ++ (intercalate "," . fmap show) vals)
