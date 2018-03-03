@@ -1,18 +1,12 @@
 module Sudoku.BusinessLogic (
   inMemoryTransaction,
-  solve,
-  merge,
-  mapValue,
-  coordsInSameSquare,
-  inSameSquare,
-  valueToAffectedSquare
+  solve
 ) where
 
 import Sudoku.Interfaces
-import Data.List (sortBy, groupBy)
+import Data.List (sortBy)
 import Data.Ord (comparing)
 import qualified Data.Map.Strict as Map (fromList, unionWith, toList)
-import Control.Arrow (second)
 import Data.Set as Set (filter, Set, fromList, union, unions, map, toList, partition, isSubsetOf, (\\), elemAt, singleton)
 
 inMemoryTransaction ::
@@ -28,29 +22,23 @@ inMemoryTransaction validator validationFailedFormatter businessLogic resultForm
 
 solve :: Sudoku -> [Sudoku]
 solve sdku =
-  let result = applyStrategies [simplifyBySetInIsolation, simplifyOverlapsBetweenSets] sdku
-  in if result == [sdku] || null result
-       then result
-       else solve $ head result
+  let result = applyStrategyRecursively doWork sdku
+  in if unsolvable result
+       then []
+       else [result]
 
-applyStrategies :: [Sudoku -> Sudoku] -> Sudoku -> [Sudoku]
-applyStrategies strategies sdku
-  | unsolvable sdku = []
-  | solvedSudoku sdku = [sdku]
-  | null strategies = [sdku]
-  | otherwise = applyStrategies' strategies sdku
+doWork :: Sudoku -> Sudoku
+doWork sdku = simplifyOverlapsBetweenSets (applyStrategyRecursively simplifyBySetInIsolation sdku)
 
-applyStrategies' :: [Sudoku -> Sudoku] -> Sudoku -> [Sudoku]
-applyStrategies' [] sdku = [sdku]
-applyStrategies' (strategy:strategies) sdku =
-  let simplified = applyStrategy strategy sdku
-  in applyStrategies strategies simplified
+applyStrategyRecursively :: (Sudoku -> Sudoku) -> Sudoku -> Sudoku
+applyStrategyRecursively =
+  untilPost (\old new -> ((new == old) || unsolvable new || solvedSudoku new))
 
-applyStrategy :: (Sudoku -> Sudoku) -> Sudoku -> Sudoku
-applyStrategy strategy sdku
-    | unsolvable sdku || solvedSudoku sdku   = sdku
-    | otherwise                              = let simplified = strategy sdku
-                                               in if simplified == sdku then sdku else applyStrategy strategy simplified
+untilPost :: (a -> a -> Bool) -> (a -> a) -> a -> a
+untilPost p f old
+  | p old new = new
+  | otherwise = untilPost p f new
+  where new = f old
 
 simplifyBySetInIsolation :: Sudoku -> Sudoku
 simplifyBySetInIsolation s = simplifyBySetInIsolation' rows (simplifyBySetInIsolation' columns (simplifyBySetInIsolation' squares s))
@@ -102,26 +90,6 @@ unsolvableSet cells =
 unsolved :: Set Cell -> Set Cell
 unsolved = Set.filter (not . solved)
 
-valueToAffectedSquare :: Set Cell -> Int -> (Int, Maybe CellCoordinates)
-valueToAffectedSquare unsolvedCells val =
-  let cellsWithValue = Set.filter (elem val . value) unsolvedCells
-      coordsWithValue = Set.map coordinates cellsWithValue
-      square = coordsInSameSquare coordsWithValue
-  in (val, square)
-
-coordsInSameSquare :: Set CellCoordinates -> Maybe CellCoordinates
-coordsInSameSquare coords =
-  let bySquare = groupBy inSameSquare (toList coords)
-      allInSameSquare = length bySquare == 1
-
-  in if allInSameSquare then Just (head (head bySquare)) else Nothing
-
-inSameSquare :: CellCoordinates -> CellCoordinates -> Bool
-inSameSquare (col1, row1) (col2, row2) = inSameSquare' col1 col2 && inSameSquare' row1 row2
-
-inSameSquare' :: (Enum a, Show a) => a -> a -> Bool
-inSameSquare' c1 c2 = (fromEnum c1 `div` 3) == (fromEnum c2 `div` 3)
-
 merge :: Sudoku -> Set Cell -> Sudoku
 merge sdku changedCells =
   let original = Map.fromList (fmap cellToTuple (toList (getCells sdku)))
@@ -135,16 +103,18 @@ cellToTuple (Cell coords values) = (coords, values)
 tupleToCell :: (CellCoordinates, CandidateValues) -> Cell
 tupleToCell (coords, values) = Cell coords values
 
-mapValue :: (Ord a, Ord b, Ord c) => (b -> c) -> Set (a, b) -> Set (a, c)
-mapValue f = Set.map (second f)
-
 simplifyOverlapsBetweenSets :: Sudoku -> Sudoku
 simplifyOverlapsBetweenSets sdku =
   let allSets = unions [squares sdku, rows sdku, columns sdku]
-      unsolvedValuesBySet = Set.map unsolvedValueToCells allSets -- for each set, a list of unsolved values to the cells they could be in
-      valuesToCellsThatShouldNotHaveItBySet = unions $ toList $ Set.map (valuesToCellsThatShouldNotHaveIt allSets) unsolvedValuesBySet
-      changed =  unions $ toList $ Set.map (uncurry removeAndReturnChanged) valuesToCellsThatShouldNotHaveItBySet
-  in merge sdku changed
+      changed = Set.map (simplifyOverlapsBetweenSets' allSets) allSets
+  in merge sdku (unions $ toList changed)
+
+simplifyOverlapsBetweenSets' :: Set (Set Cell) -> Set Cell -> Set Cell
+simplifyOverlapsBetweenSets' allSets set =
+  let unsolvedValues = unsolvedValueToCells set
+      valuesToCellsThatShouldNotHaveIt' = valuesToCellsThatShouldNotHaveIt allSets unsolvedValues
+      changed = Set.map (uncurry removeAndReturnChanged) valuesToCellsThatShouldNotHaveIt'
+  in unions $ toList changed
 
 unsolvedValueToCells :: Set Cell -> Set (Int, Set Cell)
 unsolvedValueToCells set =
