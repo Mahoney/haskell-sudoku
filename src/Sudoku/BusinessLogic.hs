@@ -4,10 +4,11 @@ module Sudoku.BusinessLogic (
 ) where
 
 import Sudoku.Interfaces
-import Data.List (sortBy)
+import Data.List (sortBy, minimumBy)
 import Data.Ord (comparing)
 import qualified Data.Map.Strict as Map (fromList, unionWith, toList)
 import Data.Set as Set (filter, Set, fromList, union, unions, map, toList, partition, isSubsetOf, (\\), elemAt, singleton)
+import Debug.Trace
 
 inMemoryTransaction ::
   (unvalidatedInput -> Either validationFailure input) ->
@@ -23,16 +24,14 @@ inMemoryTransaction validator validationFailedFormatter businessLogic resultForm
 solve :: Sudoku -> [Sudoku]
 solve sdku =
   let result = applyStrategyRecursively doWork sdku
-  in if unsolvable result
-       then []
-       else [result]
+  in bruteForceStrategy result
 
 doWork :: Sudoku -> Sudoku
 doWork sdku = simplifyOverlapsBetweenSets (applyStrategyRecursively simplifyBySetInIsolation sdku)
 
 applyStrategyRecursively :: (Sudoku -> Sudoku) -> Sudoku -> Sudoku
 applyStrategyRecursively =
-  untilPost (\old new -> ((new == old) || unsolvable new || solvedSudoku new))
+  untilPost (\old new -> ((new == old) || unsolvable new))
 
 untilPost :: (a -> a -> Bool) -> (a -> a) -> a -> a
 untilPost p f old
@@ -47,7 +46,10 @@ simplifyBySetInIsolation' :: (Sudoku -> Set (Set Cell)) -> Sudoku -> Sudoku
 simplifyBySetInIsolation' setExtractor sdku =
   let sets = setExtractor sdku
       updatedSets = Set.map simplifySet sets
-  in makeSudokuFromSets (unions (toList updatedSets))
+      updated = makeSudokuFromSets (unions (toList updatedSets))
+  in if sdku == updated
+                 then sdku
+                 else updated --trace ("latest: " ++ show updated) updated
 
 simplifySet :: Set Cell -> Set Cell
 simplifySet set =
@@ -92,10 +94,15 @@ unsolved = Set.filter (not . solved)
 
 merge :: Sudoku -> Set Cell -> Sudoku
 merge sdku changedCells =
-  let original = Map.fromList (fmap cellToTuple (toList (getCells sdku)))
-      changed = Map.fromList (fmap cellToTuple (toList changedCells))
-      merged = Map.unionWith (\_ cell2 -> cell2) original changed
-  in makeSudoku $ fmap tupleToCell (Map.toList merged)
+  let asMap cells = Map.fromList (fmap cellToTuple (toList cells))
+      fromMap sudokuMap = makeSudoku $ fmap tupleToCell (Map.toList sudokuMap)
+      original = asMap (getCells sdku)
+      changed = asMap changedCells
+      merged = Map.unionWith (flip const) original changed
+      updated = fromMap merged
+  in if sdku == updated
+            then sdku
+            else updated --trace ("latest: " ++ show updated) updated
 
 cellToTuple :: Cell -> (CellCoordinates, CandidateValues)
 cellToTuple (Cell coords values) = (coords, values)
@@ -139,3 +146,24 @@ removeAndReturnChanged :: Int -> Set Cell -> Set Cell
 removeAndReturnChanged val cells =
   let cellsWithValue = Set.filter (elem val . value) cells
   in removeCandidates (singleton val) cellsWithValue
+
+
+bruteForceStrategy :: Sudoku -> [Sudoku]
+bruteForceStrategy sdku
+  | unsolvable sdku = trace ("Unsolved: "++ show sdku) []
+  | solvedSudoku sdku = trace ("Solved: "++ show sdku) [sdku]
+  | otherwise = let smallestUnsolvedCell = smallestUnsolved (getCells sdku)
+                    oldVal = value smallestUnsolvedCell
+                    cellA = smallestUnsolvedCell {value = setHead oldVal}
+                    cellB = smallestUnsolvedCell {value = setTail oldVal}
+                    solveFor aCell = applyStrategyRecursively doWork (merge sdku (singleton aCell))
+                in bruteForceStrategy (solveFor cellA) ++  bruteForceStrategy (solveFor cellB)
+
+smallestUnsolved :: Set Cell -> Cell
+smallestUnsolved cells = minimumBy (comparing (length . value)) (Prelude.filter (\c -> length (value c) > 1) (toList cells))
+
+setHead :: Set a -> Set a
+setHead set = singleton (head (toList set))
+
+setTail :: Ord a => Set a -> Set a
+setTail set = fromList (tail (toList set))

@@ -15,7 +15,8 @@ module Sudoku.Interfaces (
   squares,
   emptyGrid,
   empty,
-  cell
+  cell,
+  toSudoku2
   ) where
 
 import Data.Strings (strPadLeft)
@@ -62,6 +63,10 @@ toCandidates v = fromList [fromEnum v]
 toSudoku :: [CandidateValues] -> Sudoku
 toSudoku candidates =
   Sudoku (Set.map (uncurry Cell) (fromList (zip (toList allCoordinates) candidates)))
+
+toSudoku2 :: [[Int]] -> Sudoku
+toSudoku2 candidates =
+  toSudoku $ fmap fromList candidates
 
 sudoku :: [InitialValue] -> Sudoku
 sudoku vs =
