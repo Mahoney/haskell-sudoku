@@ -8,7 +8,6 @@ import Data.List (sortBy, minimumBy)
 import Data.Ord (comparing)
 import qualified Data.Map.Strict as Map (fromList, unionWith, toList)
 import Data.Set as Set (filter, Set, fromList, union, unions, map, toList, partition, isSubsetOf, (\\), elemAt, singleton)
-import Debug.Trace
 
 inMemoryTransaction ::
   (unvalidatedInput -> Either validationFailure input) ->
@@ -150,8 +149,8 @@ removeAndReturnChanged val cells =
 
 bruteForceStrategy :: Sudoku -> [Sudoku]
 bruteForceStrategy sdku
-  | unsolvable sdku = trace ("Unsolved: "++ show sdku) []
-  | solvedSudoku sdku = trace ("Solved: "++ show sdku) [sdku]
+  | unsolvable sdku = []
+  | solvedSudoku sdku = [sdku]
   | otherwise = let smallestUnsolvedCell = smallestUnsolved (getCells sdku)
                     oldVal = value smallestUnsolvedCell
                     cellA = smallestUnsolvedCell {value = setHead oldVal}
