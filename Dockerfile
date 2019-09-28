@@ -15,4 +15,4 @@ RUN stack build --test && \
 
 FROM fpco/haskell-scratch:integer-gmp
 COPY --from=build /root/.local/bin/haskell-sudoku /
-CMD ["./haskell-sudoku"]
+ENTRYPOINT ["./haskell-sudoku"]
