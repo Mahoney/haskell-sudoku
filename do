@@ -16,7 +16,7 @@ latest_image_tag="$APP_NAME:latest"
 function doBuild {
 
     local output_file="/tmp/$APP_NAME-$now.txt"
-    trap "postBuild ${output_file}" EXIT
+    trap 'postBuild ${output_file} EXIT'
 
     time "$@" | tee "$output_file"
 
@@ -37,12 +37,12 @@ function build {
 }
 
 function run {
-  docker run -it --rm "$latest_image_tag" $@
+  docker run --rm "$latest_image_tag" "$@"
 }
 
 function buildAndRun {
   doBuild build
-  run $@
+  run "$@"
 }
 
 case ${action} in
